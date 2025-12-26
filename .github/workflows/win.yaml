@@ -1,0 +1,33 @@
+name: Build Trow registry
+on:
+  workflow_dispatch:
+
+jobs:
+  build_trow:
+    runs-on: windows-2025
+    steps:
+      - name: Clone
+        id: checkout
+        uses: actions/checkout@v6
+
+      - name: Build
+        id: rust_build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          rustup --version
+          rustup update
+          cargo install sqlx-cli
+          mkdir -p target && cargo sqlx database setup
+          cargo build --release
+
+      - name: Pack artifacts
+        id: pack_artifacts
+        run: |
+          7z a trow-win-x64.zip .\target\release\trow.exe
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          path: trow-win-x64.zip
+          name: trow-bin

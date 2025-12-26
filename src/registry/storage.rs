@@ -73,7 +73,7 @@ impl TrowStorageBackend {
         digest: &str,
     ) -> Result<BoundedStream<impl AsyncRead + use<'a>>, StorageBackendError> {
         tracing::debug!("Get blob {repo_name}@{digest}");
-        let path = self.blobs_dir.join(digest);
+        let path = self.blobs_dir.join(Self::sanitize_windows_path(digest));
         let file = tokio::fs::File::open(&path).await.map_err(|e| {
             tracing::error!("Could not open blob: {}", e);
             StorageBackendError::BlobNotFound(path)
@@ -93,8 +93,8 @@ impl TrowStorageBackend {
         E: std::error::Error + Send + Sync + 'static,
     {
         tracing::debug!("Write blob {digest}");
-        let tmp_location = self.uploads_dir.join(digest);
-        let location = self.blobs_dir.join(digest);
+        let tmp_location = self.uploads_dir.join(Self::sanitize_windows_path(digest));
+        let location = self.blobs_dir.join(Self::sanitize_windows_path(digest));
         if location.exists() {
             tracing::info!(digest = digest, "Blob already exists");
             return Ok(location);
@@ -222,7 +222,7 @@ impl TrowStorageBackend {
 
     pub async fn delete_blob(&self, digest: &str) -> Result<(), StorageBackendError> {
         tracing::debug!("Delete blob {digest}");
-        let blob_path = self.blobs_dir.join(digest);
+        let blob_path = self.blobs_dir.join(Self::sanitize_windows_path(digest));
         if let Err(e) = tokio::fs::remove_file(blob_path).await
             && e.kind() != std::io::ErrorKind::NotFound
         {
@@ -274,6 +274,15 @@ impl TrowStorageBackend {
         }
 
         Ok(())
+    }
+
+    fn sanitize_windows_path(path: &str) -> String {
+        if cfg!(target_os = "windows") {
+            return path.replace(":", ";");
+        }
+        else {
+            return path.to_string();
+        }
     }
 }
 
