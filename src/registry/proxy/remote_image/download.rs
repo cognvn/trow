@@ -212,6 +212,7 @@ async fn download_manifest_and_layers(
     let manifest: OCIManifest = serde_json::from_slice(&raw_manifest).map_err(|e| {
         oci_client::errors::OciDistributionError::ManifestParsingError(e.to_string())
     })?;
+    let raw_manifest: &[u8] = &raw_manifest;
 
     let blobs = manifest.get_local_blob_digests();
     let futures = blobs
@@ -243,7 +244,7 @@ async fn get_aws_ecr_password_from_env(ecr_host: &str) -> Result<String, EcrPass
         .ok_or(EcrPasswordError::InvalidRegion)?
         .to_owned();
     let region = aws_types::region::Region::new(region);
-    let config = aws_config::defaults(BehaviorVersion::v2025_08_07())
+    let config = aws_config::defaults(BehaviorVersion::v2026_01_12())
         .region(region)
         .load()
         .await;
